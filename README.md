@@ -16,7 +16,28 @@ The queue must tolerate workers going offline, use leases for claimed jobs, and 
 
 ## Status
 
-Repository scaffold only. No deployment or Mealie write integration is included yet.
+The first queue API prototype is implemented. It stores jobs in SQLite, supports worker leases, accepts recipe drafts, and requires a bearer token when `QUEUE_TOKEN` is configured. Video download, transcription, OCR, Mealie integration, and Hermes/Signal integration are intentionally not included yet.
+
+## Local test
+
+```bash
+python -m unittest -v
+```
+
+Run the API locally:
+
+```bash
+python queue_api.py
+```
+
+Create a job:
+
+```bash
+curl -H "Authorization: Bearer $QUEUE_TOKEN" \\
+  -H 'Content-Type: application/json' \\
+  -d '{"source_url":"https://www.youtube.com/shorts/example"}' \\
+  http://127.0.0.1:8088/jobs
+```
 
 ## License
 
