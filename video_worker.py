@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Callable
 from urllib.error import HTTPError
@@ -127,14 +128,55 @@ def process_one(base_url: str, token: str, worker_id: str, runner: Runner = subp
         })
 
 
+def run_loop(
+    base_url: str,
+    token: str,
+    worker_id: str,
+    *,
+    once: bool = False,
+    max_jobs: int | None = None,
+    poll_interval: int = 60,
+    runner: Runner = subprocess.run,
+) -> int:
+    """Process jobs until stopped, or until the optional maximum is reached."""
+    processed = 0
+    while max_jobs is None or processed < max_jobs:
+        try:
+            result = process_one(base_url=base_url, token=token, worker_id=worker_id, runner=runner)
+        except Exception as exc:
+            print(f"worker cycle failed: {exc}", flush=True)
+            result = None
+        if result is not None:
+            processed += 1
+            print(json.dumps(result, ensure_ascii=False), flush=True)
+            if once:
+                break
+            continue
+        if once:
+            break
+        time.sleep(max(1, poll_interval))
+    return processed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--queue", default=os.environ.get("QUEUE_URL", "http://127.0.0.1:8088"))
     parser.add_argument("--token", default=os.environ.get("QUEUE_TOKEN", ""))
     parser.add_argument("--worker-id", default=os.environ.get("WORKER_ID", os.uname().nodename))
+    parser.add_argument("--once", action="store_true", help="process at most one job and exit")
+    parser.add_argument("--max-jobs", type=int, help="stop after processing this many jobs")
+    parser.add_argument("--poll-interval", type=int, default=60, help="seconds to wait when no job is available")
     args = parser.parse_args()
-    result = process_one(args.queue, args.token, args.worker_id)
-    print(json.dumps(result, ensure_ascii=False, indent=2) if result else "No pending jobs.")
+    processed = run_loop(
+        args.queue,
+        args.token,
+        args.worker_id,
+        once=args.once,
+        max_jobs=args.max_jobs,
+        poll_interval=args.poll_interval,
+    )
+    if processed == 0:
+        print("No pending jobs.")
     return 0
 
 

@@ -19,6 +19,14 @@ The queue must tolerate workers going offline, use leases for claimed jobs, and 
 
 The first queue API prototype is implemented. It stores jobs in SQLite, supports worker leases, accepts recipe drafts, and requires a bearer token when `QUEUE_TOKEN` is configured. Video download, transcription, OCR, Mealie integration, and Hermes/Signal integration are intentionally not included yet.
 
+`video_worker.py` now supports both one-shot and long-running modes:
+
+```bash
+python video_worker.py --once
+python video_worker.py --poll-interval 60
+python video_worker.py --max-jobs 10 --poll-interval 30
+```
+
 ## Local test
 
 ```bash
@@ -30,6 +38,8 @@ Run the API locally:
 ```bash
 python queue_api.py
 ```
+
+The planned deployment location for the queue API is **littleboy**, not Travis. Travis should remain the Hermes/Signal node; littleboy can host the persistent SQLite queue alongside (but separately from) Mealie. Workers on `fatman` or `no-kon-lx-016` will connect to littleboy over the Tailnet.
 
 Create a job:
 
