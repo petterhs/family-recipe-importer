@@ -21,12 +21,14 @@
             dontBuild = true;
             installPhase = ''
               mkdir -p $out/lib/family-recipe-importer $out/bin
-              cp recipe_queue.py queue_api.py video_worker.py $out/lib/family-recipe-importer/
+              cp recipe_queue.py queue_api.py video_worker.py recipe_normalizer.py $out/lib/family-recipe-importer/
               makeWrapper ${python}/bin/python $out/bin/recipe-queue-api \
                 --add-flags "$out/lib/family-recipe-importer/queue_api.py"
               makeWrapper ${python}/bin/python $out/bin/recipe-video-worker \
                 --add-flags "$out/lib/family-recipe-importer/video_worker.py" \
                 --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.yt-dlp pkgs.ffmpeg pkgs.tesseract pkgs.openai-whisper ]}
+              makeWrapper ${python}/bin/python $out/bin/recipe-normalizer \
+                --add-flags "$out/lib/family-recipe-importer/recipe_normalizer.py"
             '';
             nativeBuildInputs = [ pkgs.makeWrapper ];
           };

@@ -16,7 +16,9 @@ The queue must tolerate workers going offline, use leases for claimed jobs, and 
 
 ## Status
 
-The first queue API prototype is implemented. It stores jobs in SQLite, supports worker leases, prevents duplicate active jobs for the same exact source URL, allows retrying failed jobs, accepts recipe drafts, and requires a bearer token when `QUEUE_TOKEN` is configured. Video download, transcription, OCR, Mealie integration, and Hermes/Signal integration are intentionally not included yet.
+The first queue API prototype is implemented. It stores jobs in SQLite, supports worker leases, prevents duplicate active jobs for the same exact source URL, allows retrying failed jobs, accepts recipe drafts, and requires a bearer token when `QUEUE_TOKEN` is configured. Video evidence extraction is implemented; Mealie integration and Hermes/Signal integration are still in progress.
+
+`recipe_normalizer.py` is a Hermes-side, Mealie-free LLM adapter. It sends separate description, captions, transcription and OCR evidence to an OpenRouter-compatible chat endpoint and validates the returned JSON draft. It requires `OPENROUTER_API_KEY` only on the Hermes host; workers never receive that credential.
 
 `video_worker.py` now supports both one-shot and long-running modes:
 
@@ -77,11 +79,11 @@ This is the durable project backlog. Update it when a milestone is completed so 
 
 ### Hermes and recipe processing
 
+- [x] Use the LLM to normalize evidence into a structured recipe draft
+- [x] Label derived metadata as estimates and preserve source conflicts
 - [ ] Add Hermes-side queue client/tool for enqueue, status and approval
 - [ ] Treat a message containing only a video URL as an import request
 - [ ] Poll for new `review` jobs without repeatedly notifying the same job
-- [ ] Use the LLM to normalize evidence into a structured recipe draft
-- [ ] Label derived metadata such as time, difficulty and health notes as estimates
 - [ ] Add concise Signal review and `godkjenn <job-id>` flow
 - [ ] Write approved recipes to Mealie and read back the exact object for validation
 - [ ] Return the verified Mealie recipe link
