@@ -9,7 +9,7 @@ Queued video-recipe importer for a self-hosted Mealie installation.
 - **Queue API:** runs on a stable always-on node and stores pending jobs and recipe drafts.
 - **Workers:** poll the queue from available machines such as `fatman` or `no-kon-lx-016`.
 - **Video extraction:** use `yt-dlp`, captions first, then transcription/OCR where needed.
-This worker now attempts audio transcription when captions are absent and sampled-frame OCR by default. Both are best-effort: missing tools or a failed extraction become explicit warnings in the draft instead of silently failing the job. The current Nix wrapper provides `yt-dlp`, `ffmpeg` and `tesseract`; a `whisper` executable and its model are still required for local transcription.
+This worker now attempts audio transcription when captions are absent and sampled-frame OCR by default. Both are best-effort: missing tools or a failed extraction become explicit warnings in the draft instead of silently failing the job. The current Nix wrapper provides `yt-dlp`, `ffmpeg`, `tesseract` and OpenAI Whisper. Whisper still downloads its selected model on first use; `WHISPER_MODEL` can select another installed/downloadable model such as `base` or `small`.
 - **Mealie:** the approved client writes the final recipe and reads it back for verification.
 
 The queue must tolerate workers going offline, use leases for claimed jobs, and never store API keys in the repository or job payloads.
