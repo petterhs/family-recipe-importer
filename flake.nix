@@ -25,7 +25,8 @@
               makeWrapper ${python}/bin/python $out/bin/recipe-queue-api \
                 --add-flags "$out/lib/family-recipe-importer/queue_api.py"
               makeWrapper ${python}/bin/python $out/bin/recipe-video-worker \
-                --add-flags "$out/lib/family-recipe-importer/video_worker.py"
+                --add-flags "$out/lib/family-recipe-importer/video_worker.py" \
+                --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.yt-dlp ]}
             '';
             nativeBuildInputs = [ pkgs.makeWrapper ];
           };
