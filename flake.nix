@@ -92,6 +92,7 @@
                 ProtectHome = true;
               } // lib.optionalAttrs (cfg.environmentFile != null) {
                 EnvironmentFile = cfg.environmentFile;
+                ConditionPathExists = cfg.environmentFile;
               };
             };
           };
