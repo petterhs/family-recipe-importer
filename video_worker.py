@@ -89,12 +89,13 @@ def _ocr(source_url: str, directory: str, runner: Runner) -> list[dict[str, str]
     frames = Path(directory) / "frames"
     frames.mkdir()
     _run_checked([
-        "ffmpeg", "-nostdin", "-y", "-i", str(videos[0]), "-vf", "fps=1/5,scale=1280:-2",
+        "ffmpeg", "-nostdin", "-y", "-i", str(videos[0]), "-vf",
+        "fps=1/2,scale=1920:-2,eq=contrast=1.3:brightness=0.05,format=gray",
         str(frames / "frame-%04d.png"),
     ], runner)
     results: list[dict[str, str]] = []
     for frame in sorted(frames.glob("*.png"))[:120]:
-        completed = _run_checked(["tesseract", str(frame), "stdout"], runner)
+        completed = _run_checked(["tesseract", str(frame), "stdout", "--psm", "11"], runner)
         text = (completed.stdout or "").strip()
         if text:
             results.append({"frame": frame.name, "text": text[:4000]})

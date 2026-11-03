@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-from video_worker import _vtt_text, extract
+from video_worker import _ocr, _vtt_text, extract
 
 
 class WorkerTests(unittest.TestCase):
@@ -29,6 +32,26 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(result["transcription"], None)
         self.assertEqual(result["ocr"], [])
         self.assertEqual(result["warnings"], [])
+
+    def test_ocr_samples_frames_and_uses_sparse_text_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            def fake_runner(command, **kwargs):
+                if command[0] == "yt-dlp":
+                    Path(directory, "video.mp4").touch()
+                elif command[0] == "ffmpeg":
+                    frames = Path(directory, "frames")
+                    frames.mkdir(exist_ok=True)
+                    Path(frames, "frame-0001.png").touch()
+                elif command[0] == "tesseract":
+                    self.assertIn("--psm", command)
+                    self.assertIn("11", command)
+                    return subprocess.CompletedProcess(command, 0, "One Pot Creamy Tomato Chicken Pasta", "")
+                return subprocess.CompletedProcess(command, 0, "", "")
+
+            with patch("video_worker.shutil.which", return_value="/bin/tool"):
+                result = _ocr("https://example.test/video", directory, fake_runner)
+
+        self.assertEqual(result[0]["text"], "One Pot Creamy Tomato Chicken Pasta")
 
     def test_missing_optional_tools_are_reported_as_warnings(self):
         def fake_runner(command, **kwargs):
