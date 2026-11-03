@@ -23,17 +23,28 @@ class WorkerTests(unittest.TestCase):
                 "description": "A simple recipe",
             }), "")
 
-        result = extract("https://example.test/video", fake_runner)
+        result = extract("https://example.test/video", fake_runner, transcribe=False, ocr=False)
         self.assertEqual(result["title"], "Eggs")
         self.assertEqual(result["captions"][0]["text"], "Add two eggs")
+        self.assertEqual(result["transcription"], None)
+        self.assertEqual(result["ocr"], [])
         self.assertEqual(result["warnings"], [])
+
+    def test_missing_optional_tools_are_reported_as_warnings(self):
+        def fake_runner(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, json.dumps({"title": "Soup"}), "")
+
+        result = extract("https://example.test/video", fake_runner)
+        self.assertEqual(result["stage"], "metadata-captions-transcription-ocr")
+        self.assertTrue(any("transcription" in warning.lower() for warning in result["warnings"]))
+        self.assertTrue(any("ocr" in warning.lower() for warning in result["warnings"]))
 
     def test_extract_failure_is_clear(self):
         def fake_runner(command, **kwargs):
             return subprocess.CompletedProcess(command, 1, "", "private video")
 
         with self.assertRaisesRegex(RuntimeError, "private video"):
-            extract("https://example.test/video", fake_runner)
+            extract("https://example.test/video", fake_runner, transcribe=False, ocr=False)
 
 
 if __name__ == "__main__":

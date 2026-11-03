@@ -10,7 +10,7 @@ class LoopTests(unittest.TestCase):
     def test_once_processes_one_job_and_stops(self):
         calls = []
 
-        def process(*, base_url, token, worker_id, runner):
+        def process(*, base_url, token, worker_id, runner, **kwargs):
             calls.append((base_url, token, worker_id))
             return {"id": "job-1"}
 
@@ -23,7 +23,7 @@ class LoopTests(unittest.TestCase):
     def test_loop_waits_when_queue_is_empty_then_processes_next_job(self):
         calls = []
 
-        def process(*, base_url, token, worker_id, runner):
+        def process(*, base_url, token, worker_id, runner, **kwargs):
             calls.append(1)
             return None if len(calls) == 1 else {"id": "job-1"}
 

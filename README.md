@@ -9,8 +9,7 @@ Queued video-recipe importer for a self-hosted Mealie installation.
 - **Queue API:** runs on a stable always-on node and stores pending jobs and recipe drafts.
 - **Workers:** poll the queue from available machines such as `fatman` or `no-kon-lx-016`.
 - **Video extraction:** use `yt-dlp`, captions first, then transcription/OCR where needed.
-- **Current worker:** `video_worker.py` claims jobs, collects metadata/description/thumbnail and available VTT captions, and submits a `review` draft. It does not yet download media, transcribe audio, run OCR, call an LLM, or write to Mealie.
-- **Review:** workers produce evidence and drafts; Hermes normalizes and validates ingredients, then a human approves before anything is written to Mealie.
+This worker now attempts audio transcription when captions are absent and sampled-frame OCR by default. Both are best-effort: missing tools or a failed extraction become explicit warnings in the draft instead of silently failing the job. The current Nix wrapper provides `yt-dlp`, `ffmpeg` and `tesseract`; a `whisper` executable and its model are still required for local transcription.
 - **Mealie:** the approved client writes the final recipe and reads it back for verification.
 
 The queue must tolerate workers going offline, use leases for claimed jobs, and never store API keys in the repository or job payloads.
@@ -70,10 +69,10 @@ This is the durable project backlog. Update it when a milestone is completed so 
 
 ### Video evidence extraction
 
-- [ ] Download audio only when captions are unavailable or insufficient
-- [ ] Add default audio transcription on workers
-- [ ] Add sampled-frame OCR by default, with bounded output and warnings
-- [ ] Store captions, description, transcription and OCR as separate evidence fields
+- [x] Download audio only when captions are unavailable or insufficient
+- [x] Add default audio transcription attempt on workers (requires a `whisper` executable and model)
+- [x] Add sampled-frame OCR by default, with bounded output and warnings
+- [x] Store captions, description, transcription and OCR as separate evidence fields
 - [ ] Add cleanup/retention policy for temporary media and evidence artifacts
 
 ### Hermes and recipe processing
