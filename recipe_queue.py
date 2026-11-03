@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 STATUSES = {"pending", "processing", "review", "approved", "imported", "failed"}
+ACTIVE_STATUSES = ("pending", "processing", "review", "approved", "imported")
 
 
 class Queue:
@@ -54,8 +55,30 @@ class Queue:
         return result
 
     def create(self, source_url: str, source_type: str = "video", payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        job, _ = self.create_or_get(source_url, source_type, payload)
+        return job
+
+    def create_or_get(
+        self,
+        source_url: str,
+        source_type: str = "video",
+        payload: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], bool]:
+        """Create a job unless the same source already has an active job.
+
+        Failed jobs are intentionally not deduplicated so a caller can retry
+        after fixing a transient worker or source problem.
+        """
         if not source_url.startswith(("https://", "http://")):
             raise ValueError("source_url must be an http(s) URL")
+        self.requeue_expired()
+        placeholders = ", ".join("?" for _ in ACTIVE_STATUSES)
+        existing = self._conn.execute(
+            f"SELECT * FROM jobs WHERE source_url = ? AND status IN ({placeholders}) ORDER BY created_at LIMIT 1",
+            (source_url, *ACTIVE_STATUSES),
+        ).fetchone()
+        if existing is not None:
+            return self._row(existing), False  # type: ignore[return-value]
         now = time.time()
         job_id = str(uuid.uuid4())
         self._conn.execute(
@@ -63,7 +86,7 @@ class Queue:
             (job_id, source_url, source_type, json.dumps(payload or {}), now, now),
         )
         self._conn.commit()
-        return self.get(job_id)  # type: ignore[return-value]
+        return self.get(job_id), True  # type: ignore[return-value]
 
     def get(self, job_id: str) -> dict[str, Any] | None:
         return self._row(self._conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone())

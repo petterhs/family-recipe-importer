@@ -26,10 +26,11 @@ def create_app(db_path: str | None = None) -> Flask:
     def create_job():
         body = request.get_json(silent=True) or {}
         try:
-            job = queue.create(body["source_url"], body.get("source_type", "video"), body.get("payload"))
+            job, created = queue.create_or_get(body["source_url"], body.get("source_type", "video"), body.get("payload"))
         except (KeyError, ValueError) as exc:
             return jsonify(error=str(exc)), 400
-        return jsonify(job), 201
+        response = jsonify(job=job, duplicate=not created)
+        return response, 201 if created else 200
 
     @app.get("/jobs")
     def list_jobs():

@@ -30,6 +30,22 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(result["status"], "review")
         self.assertEqual(result["draft"]["name"], "Soup")
 
+    def test_duplicate_active_source_returns_existing_job(self):
+        first, created = self.queue.create_or_get("https://www.youtube.com/shorts/example")
+        self.assertTrue(created)
+        second, created = self.queue.create_or_get("https://www.youtube.com/shorts/example")
+        self.assertFalse(created)
+        self.assertEqual(second["id"], first["id"])
+        self.assertEqual(second["status"], "pending")
+
+    def test_failed_source_can_be_retried(self):
+        first, _ = self.queue.create_or_get("https://example.com/retry")
+        self.queue.claim("worker")
+        self.queue.fail(first["id"], "worker", "temporary failure")
+        second, created = self.queue.create_or_get("https://example.com/retry")
+        self.assertTrue(created)
+        self.assertNotEqual(second["id"], first["id"])
+
     def test_rejects_non_url(self):
         with self.assertRaises(ValueError):
             self.queue.create("file:///tmp/video.mp4")
@@ -48,7 +64,11 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(client.get("/health").status_code, 401)
             response = client.post("/jobs", headers={"Authorization": "Bearer test-token"}, json={"source_url": "https://example.com/reel"})
             self.assertEqual(response.status_code, 201)
-            self.assertEqual(response.json["status"], "pending")
+            self.assertEqual(response.json["job"]["status"], "pending")
+            duplicate = client.post("/jobs", headers={"Authorization": "Bearer test-token"}, json={"source_url": "https://example.com/reel"})
+            self.assertEqual(duplicate.status_code, 200)
+            self.assertTrue(duplicate.json["duplicate"])
+            self.assertEqual(duplicate.json["job"]["id"], response.json["job"]["id"])
             os.environ.pop("QUEUE_TOKEN", None)
 
 
