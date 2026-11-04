@@ -46,7 +46,24 @@ class QueueTests(unittest.TestCase):
         self.assertTrue(created)
         self.assertNotEqual(second["id"], first["id"])
 
-    def test_rejects_non_url(self):
+    def test_approval_and_import_transitions(self):
+        created = self.queue.create("https://example.com/approve")
+        claimed = self.queue.claim("worker")
+        assert claimed is not None
+        self.queue.result(claimed["id"], "worker", {"title": "Soup"}, [])
+        approved = self.queue.approve(created["id"])
+        self.assertEqual(approved["status"], "approved")
+        imported = self.queue.mark_imported(created["id"], "https://mealie.example/recipe/soup")
+        self.assertEqual(imported["status"], "imported")
+        self.assertEqual(imported["payload"]["mealie_url"], "https://mealie.example/recipe/soup")
+
+    def test_approval_requires_review_and_import_requires_approval(self):
+        created = self.queue.create("https://example.com/not-ready")
+        with self.assertRaises(ValueError):
+            self.queue.approve(created["id"])
+        with self.assertRaises(ValueError):
+            self.queue.mark_imported(created["id"], "https://mealie.example/recipe/nope")
+
         with self.assertRaises(ValueError):
             self.queue.create("file:///tmp/video.mp4")
 

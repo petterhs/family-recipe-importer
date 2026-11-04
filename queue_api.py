@@ -71,6 +71,21 @@ def create_app(db_path: str | None = None) -> Flask:
             return jsonify(error=str(exc)), 400
         return jsonify(job)
 
+    @app.post("/jobs/<job_id>/approve")
+    def approve(job_id: str):
+        try:
+            return jsonify(queue.approve(job_id))
+        except (KeyError, ValueError) as exc:
+            return jsonify(error=str(exc)), 400
+
+    @app.post("/jobs/<job_id>/import")
+    def mark_imported(job_id: str):
+        body = request.get_json(silent=True) or {}
+        try:
+            return jsonify(queue.mark_imported(job_id, body["mealie_url"]))
+        except (KeyError, ValueError) as exc:
+            return jsonify(error=str(exc)), 400
+
     @app.get("/health")
     def health():
         return jsonify(status="ok")

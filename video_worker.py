@@ -102,6 +102,18 @@ def _ocr(source_url: str, directory: str, runner: Runner) -> list[dict[str, str]
     return results
 
 
+def _ocr_quality(results: list[dict[str, str]]) -> str:
+    """Classify OCR as useful text, noise, or no detected text."""
+    if not results:
+        return "no_text_detected"
+    meaningful = 0
+    for item in results:
+        words = re.findall(r"[A-Za-z]{3,}", item.get("text", ""))
+        if sum(len(word) for word in words) >= 6 and len(words) >= 1:
+            meaningful += 1
+    return "usable" if meaningful else "unusable"
+
+
 def extract(
     source_url: str,
     runner: Runner = subprocess.run,
@@ -144,8 +156,10 @@ def extract(
 
         transcription: dict[str, str] | None = None
         ocr_results: list[dict[str, str]] = []
+        ocr_status = "disabled" if not ocr else "unknown"
         warnings: list[str] = []
         if not subtitles and transcribe:
+            warnings.append("No captions were available; audio transcription is fallback evidence.")
             try:
                 transcription = _transcribe(source_url, directory, runner)
             except Exception as exc:
@@ -153,7 +167,11 @@ def extract(
         if ocr:
             try:
                 ocr_results = _ocr(source_url, directory, runner)
+                ocr_status = _ocr_quality(ocr_results)
+                if ocr_status == "unusable":
+                    warnings.append("Frame OCR produced only low-confidence noise.")
             except Exception as exc:
+                ocr_status = "unavailable"
                 warnings.append(f"Frame OCR unavailable: {exc}")
 
     description = (metadata.get("description") or "").strip()
@@ -171,6 +189,7 @@ def extract(
         "captions": subtitles,
         "transcription": transcription,
         "ocr": ocr_results,
+        "ocr_status": ocr_status,
         "warnings": warnings,
         "stage": "metadata-captions-transcription-ocr",
     }

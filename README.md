@@ -53,6 +53,8 @@ curl -H "Authorization: Bearer ***" \\
 
 A newly created job returns HTTP `201` and `{"job": {...}, "duplicate": false}`. Re-submitting the same exact URL while its job is `pending`, `processing`, `review`, `approved`, or `imported` returns HTTP `200` with the existing job and `"duplicate": true`. Failed jobs are not deduplicated, so they can be retried.
 
+Human review transitions are explicit: `POST /jobs/<id>/approve` moves `review` to `approved`; `POST /jobs/<id>/import` with `{"mealie_url":"https://..."}` records the verified URL and moves `approved` to `imported`. The Mealie adapter uses create → PUT → GET because Mealie's create endpoint returns an empty template when sent the full recipe body.
+
 ## Backlog
 
 This is the durable project backlog. Update it when a milestone is completed so the implementation does not depend on chat history.
@@ -66,6 +68,7 @@ This is the durable project backlog. Update it when a milestone is completed so 
 - [x] One-shot and polling worker modes
 - [x] End-to-end metadata/captions smoke test with a public YouTube Short
 - [x] Prevent duplicate active jobs for the same exact source URL
+- [x] Add explicit review/import status transitions
 - [ ] Add explicit retry/requeue endpoint and retry limits
 - [ ] Add notification bookkeeping for review jobs
 
@@ -75,6 +78,7 @@ This is the durable project backlog. Update it when a milestone is completed so 
 - [x] Add default audio transcription attempt on workers (requires a `whisper` executable and model)
 - [x] Add sampled-frame OCR by default, with bounded output and warnings
 - [x] Store captions, description, transcription and OCR as separate evidence fields
+- [x] Mark missing captions and noise-only OCR explicitly in worker evidence
 - [ ] Add cleanup/retention policy for temporary media and evidence artifacts
 
 ### Hermes and recipe processing
@@ -85,7 +89,7 @@ This is the durable project backlog. Update it when a milestone is completed so 
 - [ ] Treat a message containing only a video URL as an import request
 - [ ] Poll for new `review` jobs without repeatedly notifying the same job
 - [ ] Add concise Signal review and `godkjenn <job-id>` flow
-- [ ] Write approved recipes to Mealie and read back the exact object for validation
+- [x] Write approved recipes to Mealie and read back the exact object for validation
 - [ ] Return the verified Mealie recipe link
 
 ### Images and sources

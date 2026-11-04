@@ -21,7 +21,7 @@
             dontBuild = true;
             installPhase = ''
               mkdir -p $out/lib/family-recipe-importer $out/bin
-              cp recipe_queue.py queue_api.py video_worker.py recipe_normalizer.py $out/lib/family-recipe-importer/
+              cp recipe_queue.py queue_api.py video_worker.py recipe_normalizer.py mealie_client.py $out/lib/family-recipe-importer/
               makeWrapper ${python}/bin/python $out/bin/recipe-queue-api \
                 --add-flags "$out/lib/family-recipe-importer/queue_api.py"
               makeWrapper ${python}/bin/python $out/bin/recipe-video-worker \

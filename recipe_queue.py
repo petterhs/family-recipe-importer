@@ -153,6 +153,24 @@ class Queue:
             raise ValueError("job is not owned by this worker")
         return self._update(job_id, {"status": "failed", "error": error[:4000], "lease_until": None})
 
+    def approve(self, job_id: str) -> dict[str, Any]:
+        """Move a reviewed draft to approved after explicit human approval."""
+        job = self.get(job_id)
+        if not job or job["status"] != "review":
+            raise ValueError("only review jobs can be approved")
+        return self._update(job_id, {"status": "approved"})
+
+    def mark_imported(self, job_id: str, mealie_url: str) -> dict[str, Any]:
+        """Record the verified Mealie URL and finish an approved import."""
+        if not mealie_url.startswith(("https://", "http://")):
+            raise ValueError("mealie_url must be an http(s) URL")
+        job = self.get(job_id)
+        if not job or job["status"] != "approved":
+            raise ValueError("only approved jobs can be marked imported")
+        payload = dict(job["payload"] or {})
+        payload["mealie_url"] = mealie_url
+        return self._update(job_id, {"status": "imported", "payload": payload})
+
     def requeue_expired(self) -> int:
         now = time.time()
         cursor = self._conn.execute(
