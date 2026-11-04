@@ -94,7 +94,8 @@ This is the durable project backlog. Update it when a milestone is completed so 
 
 ### Images and sources
 
-- [ ] Prefer a verified source thumbnail when it depicts the dish
+- [x] Prefer a verified source thumbnail when it depicts the dish
+- [x] Upload the approved source thumbnail to Mealie and verify it on read-back
 - [ ] Fall back to a useful video frame
 - [ ] Use external images only with an explicit reuse license
 - [ ] Preserve source URLs and image attribution in the draft

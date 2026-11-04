@@ -15,12 +15,15 @@ DRAFT = {
     "total_time_minutes": 20,
     "ingredients": [{"name": "tomatoes", "quantity": 400, "unit": "g", "optional": False}],
     "instructions": ["Cook the tomatoes.", "Serve."],
+    "source_image": {"url": "https://images.example/tomato.jpg", "source": "video thumbnail"},
 }
 
 
 class Response:
-    def __init__(self, body):
+    def __init__(self, body=None, content=b"", content_type="application/json"):
         self.body = body
+        self.content = content
+        self.headers = {"Content-Type": content_type}
 
     def __enter__(self):
         return self
@@ -28,8 +31,8 @@ class Response:
     def __exit__(self, *args):
         return False
 
-    def read(self):
-        return json.dumps(self.body).encode()
+    def read(self, *args):
+        return self.content or json.dumps(self.body).encode()
 
 
 class MealieClientTests(unittest.TestCase):
@@ -44,18 +47,24 @@ class MealieClientTests(unittest.TestCase):
         calls = []
 
         def opener(request, timeout):
-            calls.append((request.method, request.full_url, json.loads(request.data) if request.data else None))
+            if request.full_url == "https://images.example/tomato.jpg":
+                return Response(content=b"jpeg-bytes", content_type="image/jpeg")
+            calls.append((request.method, request.full_url, json.loads(request.data) if request.data and request.headers.get("Content-Type") == "application/json" else request.data))
+            if request.method == "POST" and request.full_url.endswith("/image"):
+                return Response(content=b"")
             if request.method == "POST":
                 return Response({"slug": "tomato-pasta"})
             if request.method == "PUT":
                 return Response({"slug": "tomato-pasta"})
-            return Response({"slug": "tomato-pasta", "name": "Tomato pasta", "recipeIngredient": []})
+            return Response({"slug": "tomato-pasta", "name": "Tomato pasta", "image": "tomato-pasta.jpg", "recipeIngredient": []})
 
         slug, verified = MealieClient("https://mealie.example", "token", opener).import_recipe(DRAFT)
         self.assertEqual(slug, "tomato-pasta")
         self.assertEqual(verified["name"], "Tomato pasta")
-        self.assertEqual([call[0] for call in calls], ["POST", "PUT", "GET"])
+        self.assertEqual(verified["image"], "tomato-pasta.jpg")
+        self.assertEqual([call[0] for call in calls], ["POST", "PUT", "POST", "GET"])
         self.assertEqual(calls[1][1], "https://mealie.example/api/recipes/tomato-pasta")
+        self.assertTrue(calls[2][1].endswith("/api/recipes/tomato-pasta/image"))
 
 
 if __name__ == "__main__":

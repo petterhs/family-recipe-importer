@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
 from typing import Any, Callable
 from urllib.error import HTTPError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
@@ -82,13 +84,54 @@ class MealieClient:
             detail = exc.read().decode(errors="replace")
             raise RuntimeError(f"Mealie {method} {path} failed with HTTP {exc.code}: {detail[:1000]}") from exc
 
+    def _upload_image(self, slug: str, image_url: str) -> None:
+        parsed = urlparse(image_url)
+        if parsed.scheme not in {"http", "https"}:
+            raise RuntimeError("recipe image URL must use http(s)")
+        with self.opener(Request(image_url), timeout=30) as response:
+            content = response.read(10 * 1024 * 1024 + 1)
+            content_type = (response.headers.get("Content-Type") or "").split(";", 1)[0].lower()
+        if len(content) > 10 * 1024 * 1024:
+            raise RuntimeError("recipe image exceeds the 10 MiB limit")
+        allowed_types = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+        if content_type not in allowed_types:
+            raise RuntimeError(f"unsupported recipe image content type: {content_type or 'unknown'}")
+        boundary = "----HermesRecipeImage" + uuid.uuid4().hex
+        filename = "source" + allowed_types[content_type]
+        body = (
+            f"--{boundary}\r\n"
+            f"Content-Disposition: form-data; name=\"image\"; filename=\"{filename}\"\r\n"
+            f"Content-Type: {content_type}\r\n\r\n"
+        ).encode() + content + f"\r\n--{boundary}--\r\n".encode()
+        request = Request(
+            self.base_url + f"/api/recipes/{slug}/image",
+            data=body,
+            headers={
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+            },
+            method="POST",
+        )
+        try:
+            with self.opener(request, timeout=60):
+                pass
+        except HTTPError as exc:
+            detail = exc.read().decode(errors="replace")
+            raise RuntimeError(f"Mealie image upload failed with HTTP {exc.code}: {detail[:1000]}") from exc
+
     def import_recipe(self, draft: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         created = self._request("POST", "/api/recipes", {"name": draft["title"]})
         slug = created.get("slug") or (created.get("recipe") or {}).get("slug")
         if not slug:
             raise RuntimeError("Mealie create response did not contain a recipe slug")
         self._request("PUT", f"/api/recipes/{slug}", build_payload(draft))
+        image = draft.get("source_image") or {}
+        image_url = image.get("url") if isinstance(image, dict) else None
+        if image_url:
+            self._upload_image(slug, image_url)
         verified = self._request("GET", f"/api/recipes/{slug}")
+        if image_url and not any(verified.get(key) for key in ("image", "imageUrl", "image_url")):
+            raise RuntimeError("Mealie read-back did not contain the uploaded recipe image")
         return slug, verified
 
 
