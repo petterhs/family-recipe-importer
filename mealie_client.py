@@ -110,7 +110,7 @@ class MealieClient:
                 "Authorization": f"Bearer {self.token}",
                 "Content-Type": f"multipart/form-data; boundary={boundary}",
             },
-            method="POST",
+            method="PUT",
         )
         try:
             with self.opener(request, timeout=60):

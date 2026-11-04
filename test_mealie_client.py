@@ -50,7 +50,7 @@ class MealieClientTests(unittest.TestCase):
             if request.full_url == "https://images.example/tomato.jpg":
                 return Response(content=b"jpeg-bytes", content_type="image/jpeg")
             calls.append((request.method, request.full_url, json.loads(request.data) if request.data and request.headers.get("Content-Type") == "application/json" else request.data))
-            if request.method == "POST" and request.full_url.endswith("/image"):
+            if request.method == "PUT" and request.full_url.endswith("/image"):
                 return Response(content=b"")
             if request.method == "POST":
                 return Response({"slug": "tomato-pasta"})
@@ -62,7 +62,7 @@ class MealieClientTests(unittest.TestCase):
         self.assertEqual(slug, "tomato-pasta")
         self.assertEqual(verified["name"], "Tomato pasta")
         self.assertEqual(verified["image"], "tomato-pasta.jpg")
-        self.assertEqual([call[0] for call in calls], ["POST", "PUT", "POST", "GET"])
+        self.assertEqual([call[0] for call in calls], ["POST", "PUT", "PUT", "GET"])
         self.assertEqual(calls[1][1], "https://mealie.example/api/recipes/tomato-pasta")
         self.assertTrue(calls[2][1].endswith("/api/recipes/tomato-pasta/image"))
 
