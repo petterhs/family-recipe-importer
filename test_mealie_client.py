@@ -65,6 +65,8 @@ class MealieClientTests(unittest.TestCase):
         self.assertEqual([call[0] for call in calls], ["POST", "PUT", "PUT", "GET"])
         self.assertEqual(calls[1][1], "https://mealie.example/api/recipes/tomato-pasta")
         self.assertTrue(calls[2][1].endswith("/api/recipes/tomato-pasta/image"))
+        self.assertIn(b'name="extension"', calls[2][2])
+        self.assertIn(b'\r\njpg\r\n', calls[2][2])
 
 
 if __name__ == "__main__":

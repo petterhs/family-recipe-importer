@@ -100,6 +100,9 @@ class MealieClient:
         filename = "source" + allowed_types[content_type]
         body = (
             f"--{boundary}\r\n"
+            "Content-Disposition: form-data; name=\"extension\"\r\n\r\n"
+            f"{allowed_types[content_type].lstrip('.')}\r\n"
+            f"--{boundary}\r\n"
             f"Content-Disposition: form-data; name=\"image\"; filename=\"{filename}\"\r\n"
             f"Content-Type: {content_type}\r\n\r\n"
         ).encode() + content + f"\r\n--{boundary}--\r\n".encode()
