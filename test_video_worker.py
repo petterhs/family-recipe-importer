@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from video_worker import _ocr, _vtt_text, extract
+from video_worker import _ocr, _ocr_quality, _vtt_text, extract
 
 
 class WorkerTests(unittest.TestCase):
@@ -52,6 +52,19 @@ class WorkerTests(unittest.TestCase):
                 result = _ocr("https://example.test/video", directory, fake_runner)
 
         self.assertEqual(result[0]["text"], "One Pot Creamy Tomato Chicken Pasta")
+
+    def test_ocr_quality_rejects_single_word_noise(self):
+        self.assertEqual(_ocr_quality([{"frame": "1.png", "text": "garlic"}]), "unusable")
+        self.assertEqual(_ocr_quality([{"frame": "1.png", "text": "smoked paprika"}]), "usable")
+
+    def test_description_referencing_comments_is_explicitly_limited(self):
+        def fake_runner(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "title": "Chicken", "description": "Instructions are in the pinned comment."
+            }), "")
+
+        result = extract("https://example.test/video", fake_runner, transcribe=False, ocr=False)
+        self.assertTrue(any("comment" in warning.lower() for warning in result["warnings"]))
 
     def test_missing_optional_tools_are_reported_as_warnings(self):
         def fake_runner(command, **kwargs):

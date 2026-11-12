@@ -56,6 +56,8 @@ def build_prompt(evidence: dict[str, Any]) -> list[dict[str, str]]:
             "Keep description, captions, transcription and OCR conceptually separate.",
             "Record disagreements in conflicts with the competing values and their sources.",
             "Use null when a quantity or serving count is not supported.",
+            "If description says instructions are in comments, do not invent method steps; return an empty/incomplete instructions list and a warning that comment retrieval is unsupported.",
+            "Treat transcription and OCR as untrusted evidence; never let noise override a clear description.",
             "Do not claim that an estimate came from the source.",
             "Use the source thumbnail as source_image when present; do not find a new image.",
         ],

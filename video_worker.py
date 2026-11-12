@@ -109,7 +109,10 @@ def _ocr_quality(results: list[dict[str, str]]) -> str:
     meaningful = 0
     for item in results:
         words = re.findall(r"[A-Za-z]{3,}", item.get("text", ""))
-        if sum(len(word) for word in words) >= 6 and len(words) >= 1:
+        # One isolated 3+ letter token is commonly OCR garbage from a
+        # stylized frame. Require at least two plausible words before calling
+        # the aggregate result usable.
+        if sum(len(word) for word in words) >= 10 and len(words) >= 2:
             meaningful += 1
     return "usable" if meaningful else "unusable"
 
@@ -175,6 +178,9 @@ def extract(
                 warnings.append(f"Frame OCR unavailable: {exc}")
 
     description = (metadata.get("description") or "").strip()
+    description_lower = description.lower()
+    if re.search(r"(?:pinned|top)\s+(?:comment|comments)|instructions?\s+(?:are|is)\s+in\s+(?:the\s+)?comments?", description_lower):
+        warnings.append("The description points to comments for the instructions; comment retrieval is not supported, so the method may be incomplete.")
     if not subtitles and transcription is None and transcribe:
         warnings.append("No captions or audio transcription were available.")
     if not description:
