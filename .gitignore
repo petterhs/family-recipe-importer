@@ -1,4 +1,11 @@
 __pycache__/
 *.py[cod]
 queue.db
+*.db
+*.sqlite
+*.sqlite-*
+*.log
+media/
+evidence/
 .env
+.env.*

@@ -22,11 +22,11 @@ class QueueTests(unittest.TestCase):
 
     def test_claim_result_and_ownership(self):
         created = self.queue.create("https://youtu.be/example")
-        claimed = self.queue.claim("fatman")
+        claimed = self.queue.claim("test-worker")
         self.assertEqual(claimed["id"], created["id"])
         with self.assertRaises(ValueError):
             self.queue.result(created["id"], "wrong-worker", {}, [])
-        result = self.queue.result(created["id"], "fatman", {"name": "Soup"}, ["check servings"])
+        result = self.queue.result(created["id"], "test-worker", {"name": "Soup"}, ["check servings"])
         self.assertEqual(result["status"], "review")
         self.assertEqual(result["draft"]["name"], "Soup")
 

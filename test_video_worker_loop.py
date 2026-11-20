@@ -15,10 +15,10 @@ class LoopTests(unittest.TestCase):
             return {"id": "job-1"}
 
         with patch("video_worker.process_one", side_effect=process):
-            processed = run_loop("http://queue", "token", "no-kon-lx-016", once=True, poll_interval=0)
+            processed = run_loop("http://queue", "token", "test-worker", once=True, poll_interval=0)
 
         self.assertEqual(processed, 1)
-        self.assertEqual(calls, [("http://queue", "token", "no-kon-lx-016")])
+        self.assertEqual(calls, [("http://queue", "token", "test-worker")])
 
     def test_loop_waits_when_queue_is_empty_then_processes_next_job(self):
         calls = []
