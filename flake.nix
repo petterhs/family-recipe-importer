@@ -42,7 +42,7 @@
             enable = lib.mkEnableOption "the family recipe importer queue";
             package = lib.mkOption {
               type = lib.types.package;
-              default = self.packages.${pkgs.system}.default;
+              default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
               description = "Family recipe importer package.";
             };
             host = lib.mkOption {
